@@ -1,117 +1,82 @@
+"use client";
+
 import { useState } from "react";
 
 export default function Home() {
-  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [messages, setMessages] = useState([]);
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
+  async function sendMessage() {
+    const text = input.trim();
+    if (!text) return;
 
-    const userMessage = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMessage]);
+    // show user message immediately
+    setMessages((m) => [...m, { role: "user", text }]);
     setInput("");
 
-    // Call your AI route (we’ll wire this next)
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: [...messages, userMessage] }),
-    });
+    try {
+      // call API
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text }),
+      });
 
-    const data = await res.json();
-    const botMessage = { role: "assistant", content: data.reply };
-    setMessages((prev) => [...prev, botMessage]);
-  };
+      const data = await res.json();
+
+      // show bot reply
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", text: data.reply || "No reply" },
+      ]);
+    } catch (err) {
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", text: "API error" },
+      ]);
+    }
+  }
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.title}>🧙‍♂️ Mr. Wizard</h1>
-      <p style={styles.sub}>Your SeniorLimo AI Assistant</p>
+    <div
+      style={{
+        maxWidth: 700,
+        margin: "40px auto",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
+      <h1>Mr. Wizard Chat</h1>
 
-      <div style={styles.chatBox}>
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            style={{
-              ...styles.message,
-              backgroundColor:
-                msg.role === "user" ? "#2926EF" : "#C28B00",
-              alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
-              color: msg.role === "assistant" ? "#000" : "#fff",
-            }}
-          >
-            {msg.content}
+      <div
+        style={{
+          border: "1px solid #ccc",
+          padding: 12,
+          minHeight: 200,
+          marginBottom: 12,
+        }}
+      >
+        {messages.map((m, i) => (
+          <div key={i} style={{ marginBottom: 8 }}>
+            <strong>{m.role === "user" ? "You" : "Mr. Wizard"}:</strong>{" "}
+            {m.text}
           </div>
         ))}
       </div>
 
-      <div style={styles.inputRow}>
-        <input
-          style={styles.input}
-          value={input}
-          placeholder="Ask Mr. Wizard…"
-          onChange={(e) => setInput(e.target.value)}
-        />
-        <button style={styles.button} onClick={sendMessage}>
-          Send
-        </button>
-      </div>
+      <textarea
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        rows={4}
+        style={{ width: "100%", padding: 10 }}
+        placeholder="Type your message..."
+      />
+
+      <button
+        onClick={sendMessage}
+        style={{ marginTop: 10, padding: "10px 16px" }}
+      >
+        Send
+      </button>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    fontFamily: "Arial, sans-serif",
-    padding: 20,
-    maxWidth: 600,
-    margin: "0 auto",
-  },
-  title: {
-    fontSize: 32,
-    textAlign: "center",
-    marginBottom: 0,
-    color: "#2926EF",
-  },
-  sub: {
-    textAlign: "center",
-    marginTop: 0,
-    marginBottom: 20,
-    color: "#C28B00",
-    fontWeight: "bold",
-  },
-  chatBox: {
-    border: "1px solid #ccc",
-    padding: 15,
-    borderRadius: 10,
-    height: 400,
-    overflowY: "auto",
-    display: "flex",
-    flexDirection: "column",
-    gap: 10,
-    background: "#f9f9f9",
-  },
-  message: {
-    padding: 10,
-    borderRadius: 10,
-    maxWidth: "80%",
-  },
-  inputRow: {
-    display: "flex",
-    marginTop: 10,
-    gap: 10,
-  },
-  input: {
-    flex: 1,
-    padding: 10,
-    borderRadius: 8,
-    border: "1px solid #ccc",
-  },
-  button: {
-    padding: "10px 20px",
-    borderRadius: 8,
-    background: "#2926EF",
-    color: "#fff",
-    border: "none",
-  },
-};
